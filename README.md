@@ -1,12 +1,10 @@
-# Angular Standards
-
-## CSS/Styles
+# CSS/Styles
 
 See also: [Nerdery HTML/CSS Standards](https://github.com/thenerdery/html-css-standards/blob/master/standards/css.md)
 
 Angular uses SCSS by default.
 
-### Directory structure
+## Directory structure
 
 Path | Description
 --|--
@@ -17,7 +15,7 @@ Path | Description
 `src/assets/styles/tools/colors.scss`<br>`src/assets/styles/tools/typography.scss`<br>`src/assets/styles/tools/z-indexes.scss`<br>`src/assets/styles/tools/...` | Example tools.
 `src/assets/styles/lib/` | For third-party libraries
 
-### Use `@use`; don't use `@import`
+## Use `@use`; don't use `@import`
 
 [`@import` has been deprecated.](https://sass-lang.com/documentation/at-rules/import)
 
@@ -35,7 +33,7 @@ h3 {
 }
 ```
 
-### Use `@forward` to combine utilities
+## Use `@forward` to combine utilities
 
 https://sass-lang.com/documentation/at-rules/forward
 
@@ -66,7 +64,7 @@ $content-overlay: 10;
 }
 ```
 
-### Name variables with the same methodology as your CSS classes
+## Name variables with the same methodology as your CSS classes
 
 See: https://github.com/thenerdery/html-css-standards/blob/master/standards/css.md#name-delimiters
 
@@ -76,17 +74,17 @@ $color-brand_highlight: #ff0000;
 $color-brand_lowlight: #cc9999;
 ```
 
-### Use the same names for your typographies that the designers are using
+## Use the same names for your typographies that the designers are using
 
 Ideally, when inspecting an element in Sketch, you should only need to look at its "Text Style" name to know exactly what CSS class/mixin to use.
 
-### Mixins are preferable to utility classes
+## Mixins are preferable to utility classes
 
 This keeps your HTML cleaner, separates concerns, and when looking at individual component stylesheets it's easier to understand how they relate to the whole.
 
-## JS/TS
+# JS/TS
 
-### Import `*` when possible
+## Import `*` when possible
 
 If you can assume that all the items in a file or directory are going to be loaded into memory at some point anyway, then import them with `*`. This removes clutter, and allows you to namespace things for added readability.
 
@@ -123,7 +121,7 @@ Bad (unfortunately):
 import * as Rx from 'rxjs/operators';
 ```
 
-### Use `index.ts` when possible
+## Use `index.ts` when possible
 
 If you can assume that a group of files in a directory are always going to be imported together, then use `index.ts` as an entry point for the files. That way, you only need to load the directory instead of loading all its individual files.
 
@@ -151,7 +149,7 @@ Filters.Service...
 Filters.Models...
 ```
 
-### Import order
+## Import order
 
 Import should go from least-specific to most-specific.
 
@@ -174,9 +172,9 @@ import { StateService } from 'src/app/myapp/state';
 import { MySubComponent } from 'src/app/mycomponent/subcomponents/';
 ```
 
-## Angular components/modules
+# Angular components/modules
 
-### Organize your components into pages
+## Organize your components into pages
 
 If applicable, organize your components into pages, grouped together with a module for each page. This way, you don't need to import all your components into the application's root, and can more clearly define which dependencies are relevant to which pages.
 
@@ -198,7 +196,7 @@ src/app/pages/
         contact.component.ts
 ```
 
-### Group related components together
+## Group related components together
 
 If Component X is only going to be used as a sub-component within Component Y, make it a subdirectory within Component Y.
 
@@ -229,7 +227,7 @@ src/app/pages/signin/
     signin.component.ts
 ```
 
-### Create a module for globally-used components
+## Create a module for globally-used components
 
 ```
 arc/app/shared-components/
@@ -275,7 +273,7 @@ const COMPONENTS = [
 export class SharedComponentsModule {}
 ```
 
-### If using Angular Material, create an interface module
+## If using Angular Material, create an interface module
 
 Odds are you're going to use the same several components through out your app. A local module just for importing Material components will keep you from needing to add lots of imports to the modules throughout your app.
 
@@ -301,15 +299,15 @@ const MODULES = [
 export class MaterialModule {}
 ```
 
-## State management (Ngrx)
+# State management (Ngrx)
 
-### Use StoreDevtoolsModule
+## Use StoreDevtoolsModule
 
 This lets you use Redux Dev Tools, which is essential for debugging.
 
 https://ngrx.io/guide/store-devtools
 
-### Organize your files by feature, not by type
+## Organize your files by feature, not by type
 
 Good:
 
@@ -345,7 +343,7 @@ src/app/store
     ...
 ```
 
-### Use `.d.ts` files to define models/interfaces
+## Use `.d.ts` files to define models/interfaces
 
 **Note:** This is not compatible with Typescript <4.
 
@@ -376,7 +374,7 @@ import * as Auth from 'src/app/store/auth';
 Auth.Type.SigninRequest...
 ```
 
-### Define an `index.ts` for each store feature
+## Define an `index.ts` for each store feature
 
 If you need to import the actions for a store feature, odds are you'll need to import a lot of the other files too.
 
@@ -402,7 +400,7 @@ Auth.Effects...
 ...
 ```
 
-### Use `.createAction` to define actions
+## Use `.createAction` to define actions
 
 https://ngrx.io/api/store/createAction
 
@@ -440,19 +438,19 @@ export const getAllUsersFail = createAction(
 );
 ```
 
-### Create reducers for mapping API data to local POJOs
+## Create reducers for mapping API data to local POJOs
 
 There are a couple dos/donts in here:
 
-#### API data should be mapped to local models with their own schema
+### API data should be mapped to local models with their own schema
 
 This separates concerns in case the API's schema changes, and provides a central place for transforming/manipulating the data as necessary.
 
-#### API data should be mapped when it goes _into_ the store
+### API data should be mapped when it goes _into_ the store
 
 If you map the data when it comes _out of_ the store, e.g. in a selector, the logic will be executed run *every time the data is accessed* -- not very efficient!
 
-#### API data should be mapped to POJOs, not class instances
+### API data should be mapped to POJOs, not class instances
 
 Class instances cannot be directly stored in Redux; they have to be serialized to POJOs, which in addition to not being very efficient also strips them of any instance methods.
 
