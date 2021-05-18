@@ -1,3 +1,9 @@
+# Angular Standards
+
+This should be considered an addition to [Google's Angular standards](https://angular.io/guide/styleguide), which are fairly broad and not super specific.
+
+Whereas Google covers the _essentials_, the following should be viewed as _recommendations_, and also a starting place for new Angular developers. They are based on experiences building a variety of Angular apps and lessons learned in the process.
+
 # CSS/Styles
 
 See also: [Nerdery HTML/CSS Standards](https://github.com/thenerdery/html-css-standards/blob/master/standards/css.md)
@@ -199,6 +205,8 @@ src/app/pages/
 ## Group related components together
 
 If Component X is only going to be used as a sub-component within Component Y, make it a subdirectory within Component Y.
+
+(For small applications, this does conflict with the 'F' for 'Flat' in [LIFT](https://angular.io/guide/styleguide#lift). It is intended for applications that will grow to be large.)
 
 ```
 src/app/pages/profile/
