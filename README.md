@@ -80,13 +80,88 @@ $color-brand_highlight: #ff0000;
 $color-brand_lowlight: #cc9999;
 ```
 
-## Use the same names for your typographies that the designers are using
-
-Ideally, when inspecting an element in Sketch, you should only need to look at its "Text Style" name to know exactly what CSS class/mixin to use.
-
 ## Mixins are preferable to utility classes
 
 This keeps your HTML cleaner, separates concerns, and when looking at individual component stylesheets it's easier to understand how they relate to the whole.
+
+## Use the same names for your typographies that the designers are using
+
+Ideally, when inspecting an element in Sketch you should only need to look at its "Text Style" name to know exactly what CSS class/mixin to use, and vice-versa when inspecting an element in your browser you should see exactly which Sketch Text Style it ues.
+
+Although you could do this simply through a class name (e.g. `.headline-1`, `.subtitle-2`, `.caption`) this has limitations. You probably want use the `Subtitle` Text Style for all `h3`, and it isn't practical to add the `.subtitle` class to all `<h3>` elements, so it won't be clear to which Text Style `h3` corresponds. You could `@extend` the `.subtitle` class for `h3`, but the name `subtitle` won't carry over.
+
+My favored approach uses a big map of typographies, and a `@mixin` to retrieve the appopriate one, which adds a CSS variable (e.g. `--styleguide`) the contents of which is the Text Style name:
+
+```scss
+// src/assets/tools/typography.scss
+$typography-configs: (
+  'Headline 1': (
+    font-family: $font-family-hdg,
+    font-size: 32,
+    font-weight: 400,
+    letter-spacing: 0,
+    line-height: 40,
+  ),
+  'Subtitle': (
+    font-family: $font-family-hdg,
+    font-size: 24,
+    font-weight: 400,
+    letter-spacing: 0,
+    line-height: 32,
+  ),
+  'Caption': (
+    color: color.$neutral-x2,
+    font-family: $font-family-body,
+    font-size: 12,
+    font-weight: 400,
+    letter-spacing: .3px,
+    line-height: 16,
+    -webkit-font-smoothing: auto,
+  ),
+);
+
+@mixin typography($name) {
+  $config: map-get($typography-configs, $name);
+  $font-size: map-get($configm 'font-size');
+  $formatted-config: map-merge($config, (
+    line-height: (map-get($config, 'line-height') / $font-size), // Converts line-height to a fraction of font-size
+    --styleguide: $name,
+  ));
+  @return $formatted-config;
+}
+
+// src/app/some-other-stylesheet.scss
+@use 'src/assets/tools';
+
+h3 {
+    @include tools.typography('Subtitle');
+}
+
+.something-that-looks-like-h3 {
+    @include tools.typography('Subtitle');
+}
+```
+
+```css
+/* What I see in the browser's element inspector */
+h3 {
+    font-family: 'Times New Roman';
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.33;
+    --styleguide: 'Subtitle';
+}
+
+.something-that-looks-like-h3 {
+    font-family: 'Times New Roman';
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.33;
+    --styleguide: 'Subtitle';
+}
+```
 
 # JS/TS
 
