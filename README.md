@@ -29,9 +29,9 @@ Whereas `@import`ed variables are all global, `@use` lets you namespace them.
 @use 'src/assets/styles/tools' as tools;
 
 h3 {
-  @include tools.typography('Headline 4');
+    @include tools.typography('Headline 4');
 
-  margin-bottom: tools.$margin__default;
+    margin-bottom: tools.$margin__default;
 }
 ```
 
@@ -277,9 +277,7 @@ export class SharedComponentsModule {}
 
 ### If using Angular Material, create an interface module
 
-If you're using Angular Material, odds are you're going to use the same several components through out your app.
-
-A local module just for importing Material components will keep you from needing to add lots of imports to the modules throughout your app.
+Odds are you're going to use the same several components through out your app. A local module just for importing Material components will keep you from needing to add lots of imports to the modules throughout your app.
 
 ```ts
 // src/app/shared-components/material/material.module.ts
@@ -290,17 +288,286 @@ import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
 const MODULES = [
-  MatButtonModule,
-  MatCardModule,
-  MatCheckboxModule,
+    MatButtonModule,
+    MatCardModule,
+    MatCheckboxModule,
 ];
 
 @NgModule({
-  declarations: [],
-  imports: [...MODULES],
-  exports: [...MODULES],
+    declarations: [],
+    imports: [...MODULES],
+    exports: [...MODULES],
 })
 export class MaterialModule {}
 ```
 
-## State management
+## State management (Ngrx)
+
+### Use StoreDevtoolsModule
+
+This lets you use Redux Dev Tools, which is essential for debugging.
+
+https://ngrx.io/guide/store-devtools
+
+### Organize your files by feature, not by type
+
+Good:
+
+```
+src/app/store
+    index.ts
+    auth/
+        auth.actions.ts
+        auth.effects.ts
+        auth.reducers.ts
+        auth.selectors.ts
+        auth.types.d.ts
+        index.ts
+    users/
+        users.actions.ts
+        users.effects.ts
+        users.reducers.ts
+        users.selectors.ts
+        users.types.d.ts
+        index.ts
+```
+
+Bad:
+
+```
+src/app/store
+    actions/
+        auth.actions.ts
+        users.actions.ts
+    effects/
+        auth.effects.ts
+        users.effects.ts
+    ...
+```
+
+### Use `.d.ts` files to define models/interfaces
+
+**Note:** This is not compatible with Typescript <4.
+
+The `.d.ts` extension signals to Typescript that these files are for type declarations only -- code statements in them will cause an error.
+
+```
+src/app/store
+    index.ts
+    auth/
+        auth.actions.ts
+        auth.effects.ts
+        auth.reducers.ts
+        auth.selectors.ts
+        auth.types.d.ts
+        index.ts
+```
+
+```ts
+// src/app/app/store/auth/auth.types.d.ts
+export interface SigninRequest {
+    username: string;
+    password: string;
+}
+
+// src/app/my-component/my-component.component.ts
+import * as Auth from 'src/app/store/auth';
+
+Auth.Type.SigninRequest...
+```
+
+### Define an `index.ts` for each store feature
+
+If you need to import the actions for a store feature, odds are you'll need to import a lot of the other files too.
+
+```ts
+// src/app/store/auth/index.ts
+
+import { AuthEffects as Effects } from './auth.effects';
+import * as Actions from './auth.actions';
+import * as Selectors from './auth.selectors';
+import * as Store from './auth.reducers';
+import * as Types from './auth.types.d';
+
+export { Actions, Effects, Selectors, Store, Types };
+```
+
+```ts
+// src/app/my-component/my-component.component.ts
+
+import * as Auth from 'src/app/store/auth';
+
+Auth.Actions...
+Auth.Effects...
+...
+```
+
+### Use `.createAction` to define actions
+
+https://ngrx.io/api/store/createAction
+
+This creates _much_ less boilerplate than the old method of using classes and tracking action names in big enums.
+
+Note the use of the `prefix` variable below to properly and simply namespace actions.
+
+```ts
+// src/app/store/user/user.actions.ts
+
+import { createAction, props } from '@ngrx/store';
+import * as Model from './user.models';
+import * as API from 'src/app/services/api/user';
+
+const prefix = `[User]`;
+
+export const getUser = createAction(
+    `${prefix} Get User`,
+    props<Model.User>,
+);
+
+export const getAllUsers = createAction(`${prefix} Get All Users`);
+
+export const getAllUsersSuccess = createAction(
+    `${prefix} Get All Users Success`,
+    props<API.Models.NormalizedUserResponse>(),
+);
+
+export const getAllUsersFail = createAction(
+    `${prefix} Get All Users Fail`,
+    props<{
+        status?: number;
+        message: string;
+    }>,
+);
+```
+
+### Create reducers for mapping API data to local POJOs
+
+There are a couple dos/donts in here:
+
+#### API data should be mapped to local models with their own schema
+
+This separates concerns in case the API's schema changes, and provides a central place for transforming/manipulating the data as necessary.
+
+#### API data should be mapped when it goes _into_ the store
+
+If you map the data when it comes _out of_ the store, e.g. in a selector, the logic will be executed run *every time the data is accessed* -- not very efficient!
+
+#### API data should be mapped to POJOs, not class instances
+
+Class instances cannot be directly stored in Redux; they have to be serialized to POJOs, which in addition to not being very efficient also strips them of any instance methods.
+
+Good:
+
+```ts
+// src/app/store/posts/posts.reducers.ts
+import * as Actions from './posts.actions';
+import * as Type from './posts.types.d';
+
+export function _reducer = createReducer(
+    initialState,
+    on(Actions.getPostsSuccess, (state, apiPosts) => ({
+        ...state,
+        posts: apiPosts.map(postFromAPI),
+    })),
+)
+
+export function reducers = (state: Model.State, action: Action) {
+    return _reducer(state, action);
+}
+
+export function postFromAPI(
+    apiPost: Type.APIPost,
+): Type.Post {
+    const _createdOn = new Date(apiPost.created_on);
+    return {
+        body: apiPost.body,
+        createdOn: apiPost.created_on,
+        createdOnDate: format(_createdOn, 'MMM d, yyyy'),
+        createdOnTime> format(_createdOn, 'H:mm:ss'),
+    }
+}
+```
+
+Less good:
+
+```ts
+// src/app/store/posts/posts.models.ts
+import * as Type from './posts.types.d';
+export class Post {
+  body: string;
+  createdOn: string;
+  createdOnDate: string;
+  createdOnTime: string;
+
+  constructor(apiPost: Type.APIPost) {
+    const _createdOn = new Date(apiPost.created_on);
+    this.body = apiPost.body;
+    this.createdOn = apiPost.created_on;
+    this.createdOnDate = format(_createdOn, 'MMM d, yyyy');
+    this.createdOnTime = format(_createdOn, 'H:mm:ss');
+  }
+}
+
+// src/app/store/posts/posts.reducers.ts
+import * as Actions from './posts.actions';
+import * as Model from './posts.models';
+import * as Type from './posts.types.d';
+
+export function _reducer = createReducer(
+    initialState,
+    on(Actions.getPostsSuccess, (state, apiPosts) => ({
+        ...state,
+        posts: apiPosts.map(apiPost => new Model.Post(apiPost)),
+    })),
+)
+
+export function reducers = (state: Type.State, action: Action) {
+    return _reducer(state, action);
+}
+```
+
+Less good:
+
+```ts
+// src/app/store/posts/posts.models.ts
+export class Post {
+  body: string;
+  createdOn: string;
+  createdOnDate: string;
+  createdOnTime: string;
+
+  constructor(apiPost: Model.APIPost) {
+    const _createdOn = new Date(apiPost.created_on);
+    this.body = apiPost.body;
+    this.createdOn = apiPost.created_on;
+    this.createdOnDate = format(_createdOn, 'MMM d, yyyy');
+    this.createdOnTime = format(_createdOn, 'H:mm:ss');
+  }
+}
+
+// src/app/store/posts/posts.reducers.ts
+import * as Actions from './post/actions';
+import * as Model from './post.models';
+
+export function _reducer = createReducer(
+    initialState,
+    on(Actions.getPostsSuccess, (state, posts) => ({
+        ...state,
+        posts,
+    })),
+)
+
+export function reducers = (state: Model.State, action: Action) {
+    return _reducer(state, action);
+}
+
+// src/app/store/posts/posts.selectors.ts
+import * as Model from './post.models';
+
+export const selectPosts: MemoizedSelector<
+    Type.State,
+    Model.APIPost,
+> = createSelector(state: Type.State) => ({
+    posts: state.apiPosts.map(apiPost => new Model.Post(apPost)),
+}));
+```
